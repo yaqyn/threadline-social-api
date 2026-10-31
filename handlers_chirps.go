@@ -101,7 +101,24 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		previous := max(int32(0), params.PageOffset-requestedLimit)
 		w.Header().Set("X-Previous-Offset", strconv.Itoa(int(previous)))
 	}
+	links := []string{}
+	if hasMore {
+		links = append(links, paginationLink(r, params.PageOffset+requestedLimit, "next"))
+	}
+	if params.PageOffset > 0 {
+		links = append(links, paginationLink(r, max(int32(0), params.PageOffset-requestedLimit), "prev"))
+	}
+	if len(links) > 0 {
+		w.Header().Set("Link", strings.Join(links, ", "))
+	}
 	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func paginationLink(r *http.Request, offset int32, relation string) string {
+	values := r.URL.Query()
+	values.Del("page")
+	values.Set("offset", strconv.Itoa(int(offset)))
+	return "<" + r.URL.Path + "?" + values.Encode() + ">; rel=\"" + relation + "\""
 }
 
 func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +168,11 @@ func cleanChirp(body string) string {
 func normalizeChirp(body string) string {
 	body = strings.ReplaceAll(body, "\r\n", "\n")
 	body = strings.ReplaceAll(body, "\r", "\n")
-	return cleanChirp(strings.TrimSpace(body))
+	lines := strings.Split(strings.TrimSpace(body), "\n")
+	for index := range lines {
+		lines[index] = strings.TrimRight(lines[index], " \t")
+	}
+	return cleanChirp(strings.Join(lines, "\n"))
 }
 
 func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
