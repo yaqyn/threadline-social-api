@@ -52,6 +52,19 @@ func TestChirpDetailPrefersHigherQualityJSON(t *testing.T) {
 	}
 }
 
+func TestChirpDetailHeadReturnsMetadataWithoutBody(t *testing.T) {
+	chirp := Chirp{ID: uuid.New(), UpdatedAt: time.Now(), Body: "hello"}
+	for _, accept := range []string{"application/json", "text/plain"} {
+		request := httptest.NewRequest("HEAD", "/api/chirps/1", nil)
+		request.Header.Set("Accept", accept)
+		response := httptest.NewRecorder()
+		respondWithChirp(response, request, chirp)
+		if response.Code != http.StatusOK || response.Header().Get("ETag") == "" || response.Body.Len() != 0 {
+			t.Fatalf("accept=%q status=%d etag=%q body=%q", accept, response.Code, response.Header().Get("ETag"), response.Body.String())
+		}
+	}
+}
+
 func TestPublicDirectoryIsolation(t *testing.T) {
 	cfg := &apiConfig{}
 	for _, path := range []string{"/app/.env", "/app/main.go", "/app/go.mod", "/app/../.env"} {

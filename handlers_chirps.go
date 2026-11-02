@@ -156,7 +156,15 @@ func respondWithChirp(w http.ResponseWriter, r *http.Request, chirp Chirp) {
 	if prefersPlainText(r.Header.Get("Accept")) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
+		if r.Method == http.MethodHead {
+			return
+		}
 		_, _ = w.Write([]byte(chirp.Body))
+		return
+	}
+	if r.Method == http.MethodHead {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	respondWithJSON(w, http.StatusOK, chirp)
