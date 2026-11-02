@@ -152,20 +152,41 @@ func respondWithChirp(w http.ResponseWriter, r *http.Request, chirp Chirp) {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	for _, accepted := range strings.Split(r.Header.Get("Accept"), ",") {
+	w.Header().Add("Vary", "Accept")
+	if prefersPlainText(r.Header.Get("Accept")) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(chirp.Body))
+		return
+	}
+	respondWithJSON(w, http.StatusOK, chirp)
+}
+
+func prefersPlainText(accept string) bool {
+	if strings.TrimSpace(accept) == "" {
+		return false
+	}
+	plainQuality, jsonQuality := -1.0, -1.0
+	for _, accepted := range strings.Split(accept, ",") {
 		mediaType, parameters, err := mime.ParseMediaType(strings.TrimSpace(accepted))
 		quality, qualityErr := strconv.ParseFloat(parameters["q"], 64)
 		if parameters["q"] == "" {
 			quality, qualityErr = 1, nil
 		}
-		if err == nil && qualityErr == nil && quality > 0 && strings.EqualFold(mediaType, "text/plain") {
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(chirp.Body))
-			return
+		if err != nil || qualityErr != nil || quality <= 0 {
+			continue
+		}
+		switch strings.ToLower(mediaType) {
+		case "text/plain":
+			plainQuality = max(plainQuality, quality)
+		case "application/json":
+			jsonQuality = max(jsonQuality, quality)
+		case "*/*":
+			plainQuality = max(plainQuality, quality)
+			jsonQuality = max(jsonQuality, quality)
 		}
 	}
-	respondWithJSON(w, http.StatusOK, chirp)
+	return plainQuality > jsonQuality
 }
 
 func cleanChirp(body string) string {

@@ -26,7 +26,7 @@ func TestChirpDetailSupportsConditionalRequests(t *testing.T) {
 func TestChirpDetailCanBeRenderedAsPlainText(t *testing.T) {
 	chirp := Chirp{ID: uuid.MustParse("00000000-0000-0000-0000-000000000001"), UpdatedAt: time.Now(), Body: "hello\nworld"}
 	request := httptest.NewRequest("GET", "/api/chirps/1", nil)
-	request.Header.Set("Accept", "application/json, text/plain; q=0.8")
+	request.Header.Set("Accept", "application/json; q=0.5, text/plain; q=0.8")
 	response := httptest.NewRecorder()
 	respondWithChirp(response, request, chirp)
 	if response.Code != http.StatusOK || response.Header().Get("Content-Type") != "text/plain; charset=utf-8" || response.Body.String() != chirp.Body {
@@ -38,6 +38,17 @@ func TestChirpDetailCanBeRenderedAsPlainText(t *testing.T) {
 	respondWithChirp(response, request, chirp)
 	if response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
 		t.Fatalf("zero-quality plain text should fall back to JSON: %v", response.Header())
+	}
+}
+
+func TestChirpDetailPrefersHigherQualityJSON(t *testing.T) {
+	chirp := Chirp{ID: uuid.New(), UpdatedAt: time.Now(), Body: "hello"}
+	request := httptest.NewRequest("GET", "/api/chirps/1", nil)
+	request.Header.Set("Accept", "text/plain;q=0.2, application/json;q=0.9")
+	response := httptest.NewRecorder()
+	respondWithChirp(response, request, chirp)
+	if response.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatalf("content type = %q", response.Header().Get("Content-Type"))
 	}
 }
 
