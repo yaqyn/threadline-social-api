@@ -121,3 +121,16 @@ func TestJSONResponsesDeclareUTF8(t *testing.T) {
 		t.Fatalf("content type: %q", response.Header().Get("Content-Type"))
 	}
 }
+
+func TestMinimalReturnPreferenceParsing(t *testing.T) {
+	for _, value := range []string{"return=minimal", "respond-async, return=minimal", "RETURN=MINIMAL"} {
+		if !prefersMinimal(value) {
+			t.Fatalf("rejected %q", value)
+		}
+	}
+	for _, value := range []string{"", "return=representation", "return=minimally"} {
+		if prefersMinimal(value) {
+			t.Fatalf("accepted %q", value)
+		}
+	}
+}

@@ -62,10 +62,24 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Location", "/api/chirps/"+chirp.ID.String())
+	if prefersMinimal(r.Header.Get("Prefer")) {
+		w.Header().Set("Preference-Applied", "return=minimal")
+		w.WriteHeader(http.StatusCreated)
+		return
+	}
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt,
 		Body: chirp.Body, UserID: chirp.UserID,
 	})
+}
+
+func prefersMinimal(prefer string) bool {
+	for _, preference := range strings.Split(prefer, ",") {
+		if strings.EqualFold(strings.TrimSpace(preference), "return=minimal") {
+			return true
+		}
+	}
+	return false
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
