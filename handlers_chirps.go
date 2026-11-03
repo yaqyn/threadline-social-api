@@ -61,6 +61,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp")
 		return
 	}
+	w.Header().Set("Location", "/api/chirps/"+chirp.ID.String())
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt,
 		Body: chirp.Body, UserID: chirp.UserID,

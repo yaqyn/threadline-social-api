@@ -77,7 +77,19 @@ func TestAPIIntegration(t *testing.T) {
 	login := request("POST", "/api/login", credentials, "", 200)
 	access := "Bearer " + login["token"].(string)
 	refresh := "Bearer " + login["refresh_token"].(string)
-	chirp := request("POST", "/api/chirps", map[string]string{"body": "hello KERFUFFLE"}, access, 201)
+	createBody := bytes.NewBufferString(`{"body":"hello KERFUFFLE"}`)
+	createRequest := httptest.NewRequest("POST", "/api/chirps", createBody)
+	createRequest.Header.Set("Content-Type", "application/json")
+	createRequest.Header.Set("Authorization", access)
+	createResponse := httptest.NewRecorder()
+	router.ServeHTTP(createResponse, createRequest)
+	var chirp map[string]any
+	if err := json.Unmarshal(createResponse.Body.Bytes(), &chirp); err != nil || createResponse.Code != http.StatusCreated {
+		t.Fatalf("create chirp: %d %s", createResponse.Code, createResponse.Body.String())
+	}
+	if createResponse.Header().Get("Location") != "/api/chirps/"+chirp["id"].(string) {
+		t.Fatalf("chirp location: %q", createResponse.Header().Get("Location"))
+	}
 	if chirp["user_id"] != id || chirp["body"] != "hello ****" {
 		t.Fatal("chirp author or cleaning wrong")
 	}
