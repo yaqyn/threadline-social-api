@@ -82,6 +82,15 @@ func prefersMinimal(prefer string) bool {
 	return false
 }
 
+func prefersRepresentation(prefer string) bool {
+	for _, preference := range strings.Split(prefer, ",") {
+		if strings.EqualFold(strings.TrimSpace(preference), "return=representation") {
+			return true
+		}
+	}
+	return false
+}
+
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	params, err := parseChirpQuery(r)
 	if err != nil {
@@ -282,6 +291,11 @@ func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request)
 	}
 	if deleted == 0 {
 		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+	if prefersRepresentation(r.Header.Get("Prefer")) {
+		w.Header().Set("Preference-Applied", "return=representation")
+		respondWithJSON(w, http.StatusOK, Chirp{ID: chirp.ID, CreatedAt: chirp.CreatedAt, UpdatedAt: chirp.UpdatedAt, Body: chirp.Body, UserID: chirp.UserID})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

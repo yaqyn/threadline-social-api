@@ -143,6 +143,14 @@ func TestAPIIntegration(t *testing.T) {
 	if minimalResponse.Code != http.StatusCreated || minimalResponse.Body.Len() != 0 || minimalResponse.Header().Get("Location") == "" || minimalResponse.Header().Get("Preference-Applied") != "return=minimal" {
 		t.Fatalf("minimal create: %d headers=%v body=%q", minimalResponse.Code, minimalResponse.Header(), minimalResponse.Body.String())
 	}
+	deleteRequest := httptest.NewRequest("DELETE", path, nil)
+	deleteRequest.Header.Set("Authorization", access)
+	deleteRequest.Header.Set("Prefer", "return=representation")
+	deleteResponse := httptest.NewRecorder()
+	router.ServeHTTP(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusOK || deleteResponse.Header().Get("Preference-Applied") != "return=representation" || !strings.Contains(deleteResponse.Body.String(), "hello ****") {
+		t.Fatalf("delete representation: %d %v %s", deleteResponse.Code, deleteResponse.Header(), deleteResponse.Body.String())
+	}
 
 	request("POST", "/api/chirps", map[string]string{"body": strings.Repeat("界", 141)}, access, 400)
 	request("POST", "/api/chirps", map[string]string{"body": " "}, access, 400)
@@ -163,7 +171,7 @@ func TestAPIIntegration(t *testing.T) {
 
 	request("POST", "/api/revoke", nil, refresh, 204)
 	request("POST", "/api/refresh", nil, refresh, 401)
-	request("DELETE", path, "", access, 204)
+	request("DELETE", "/api/chirps/"+second["id"].(string), "", access, 204)
 	request("GET", path, nil, "", 404)
 	updated := request("PUT", "/api/users", map[string]string{"email": email, "password": "changed-password"}, access, 200)
 	if updated["id"] != id || updated["is_chirpy_red"] != true {

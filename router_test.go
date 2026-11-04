@@ -134,3 +134,9 @@ func TestMinimalReturnPreferenceParsing(t *testing.T) {
 		}
 	}
 }
+
+func TestRepresentationPreferenceParsing(t *testing.T) {
+	if !prefersRepresentation("respond-async, RETURN=representation") || prefersRepresentation("return=minimal") {
+		t.Fatal("representation preference parsed incorrectly")
+	}
+}
