@@ -90,15 +90,6 @@ func TestAPIIntegration(t *testing.T) {
 	if createResponse.Header().Get("Location") != "/api/chirps/"+chirp["id"].(string) {
 		t.Fatalf("chirp location: %q", createResponse.Header().Get("Location"))
 	}
-	minimalRequest := httptest.NewRequest("POST", "/api/chirps", bytes.NewBufferString(`{"body":"quiet creation"}`))
-	minimalRequest.Header.Set("Content-Type", "application/json")
-	minimalRequest.Header.Set("Authorization", access)
-	minimalRequest.Header.Set("Prefer", "respond-async, return=minimal")
-	minimalResponse := httptest.NewRecorder()
-	router.ServeHTTP(minimalResponse, minimalRequest)
-	if minimalResponse.Code != http.StatusCreated || minimalResponse.Body.Len() != 0 || minimalResponse.Header().Get("Location") == "" || minimalResponse.Header().Get("Preference-Applied") != "return=minimal" {
-		t.Fatalf("minimal create: %d headers=%v body=%q", minimalResponse.Code, minimalResponse.Header(), minimalResponse.Body.String())
-	}
 	if chirp["user_id"] != id || chirp["body"] != "hello ****" {
 		t.Fatal("chirp author or cleaning wrong")
 	}
@@ -137,6 +128,15 @@ func TestAPIIntegration(t *testing.T) {
 		if strings.Contains(test.query, "offset=1") && w.Header().Get("X-Previous-Offset") != "0" {
 			t.Fatalf("query %s previous offset=%q", test.query, w.Header().Get("X-Previous-Offset"))
 		}
+	}
+	minimalRequest := httptest.NewRequest("POST", "/api/chirps", bytes.NewBufferString(`{"body":"quiet creation"}`))
+	minimalRequest.Header.Set("Content-Type", "application/json")
+	minimalRequest.Header.Set("Authorization", access)
+	minimalRequest.Header.Set("Prefer", "respond-async, return=minimal")
+	minimalResponse := httptest.NewRecorder()
+	router.ServeHTTP(minimalResponse, minimalRequest)
+	if minimalResponse.Code != http.StatusCreated || minimalResponse.Body.Len() != 0 || minimalResponse.Header().Get("Location") == "" || minimalResponse.Header().Get("Preference-Applied") != "return=minimal" {
+		t.Fatalf("minimal create: %d headers=%v body=%q", minimalResponse.Code, minimalResponse.Header(), minimalResponse.Body.String())
 	}
 
 	request("POST", "/api/chirps", map[string]string{"body": strings.Repeat("界", 141)}, access, 400)
