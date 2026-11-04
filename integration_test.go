@@ -101,6 +101,11 @@ func TestAPIIntegration(t *testing.T) {
 	request("DELETE", path, nil, "Bearer "+otherToken, 403)
 	request("GET", path, nil, "", 200)
 	second := request("POST", "/api/chirps", map[string]string{"body": "second post"}, access, 201)
+	searchResponse := httptest.NewRecorder()
+	router.ServeHTTP(searchResponse, httptest.NewRequest("GET", "/api/chirps?q=second", nil))
+	if searchResponse.Code != http.StatusOK || !strings.Contains(searchResponse.Body.String(), "second post") || strings.Contains(searchResponse.Body.String(), "hello ****") {
+		t.Fatalf("chirp search: %d %s", searchResponse.Code, searchResponse.Body.String())
+	}
 	for _, test := range []struct {
 		query   string
 		wantID  string

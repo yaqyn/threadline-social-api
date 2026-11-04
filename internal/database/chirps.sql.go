@@ -143,15 +143,17 @@ func (q *Queries) GetChirpsByAuthor(ctx context.Context, userID uuid.UUID) ([]Ch
 const getChirpsPage = `-- name: GetChirpsPage :many
 SELECT id, created_at, updated_at, body, user_id FROM chirps
 WHERE ($1::uuid IS NULL OR user_id = $1)
+  AND ($2::text = '' OR body ILIKE '%' || $2::text || '%')
 ORDER BY
-    CASE WHEN $2::boolean THEN created_at END DESC,
-    CASE WHEN NOT $2::boolean THEN created_at END ASC,
+    CASE WHEN $3::boolean THEN created_at END DESC,
+    CASE WHEN NOT $3::boolean THEN created_at END ASC,
     id ASC
-LIMIT $4 OFFSET $3
+LIMIT $5 OFFSET $4
 `
 
 type GetChirpsPageParams struct {
 	AuthorID   uuid.NullUUID
+	Search     string
 	Descending bool
 	PageOffset int32
 	PageLimit  int32
@@ -160,6 +162,7 @@ type GetChirpsPageParams struct {
 func (q *Queries) GetChirpsPage(ctx context.Context, arg GetChirpsPageParams) ([]Chirp, error) {
 	rows, err := q.db.QueryContext(ctx, getChirpsPage,
 		arg.AuthorID,
+		arg.Search,
 		arg.Descending,
 		arg.PageOffset,
 		arg.PageLimit,

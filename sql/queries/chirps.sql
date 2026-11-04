@@ -23,6 +23,7 @@ ORDER BY created_at ASC;
 -- name: GetChirpsPage :many
 SELECT * FROM chirps
 WHERE (sqlc.narg(author_id)::uuid IS NULL OR user_id = sqlc.narg(author_id))
+  AND (sqlc.arg(search)::text = '' OR body ILIKE '%' || sqlc.arg(search)::text || '%')
 ORDER BY
     CASE WHEN sqlc.arg(descending)::boolean THEN created_at END DESC,
     CASE WHEN NOT sqlc.arg(descending)::boolean THEN created_at END ASC,

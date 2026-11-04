@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
-	"github.com/yaqyn/threadline-social-api/internal/database"
 	"io"
 	"mime"
 	"net/http"
@@ -14,6 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
+
+	"github.com/google/uuid"
+	"github.com/yaqyn/threadline-social-api/internal/database"
 )
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
@@ -45,6 +47,7 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, payload any) bool {
 	}
 	return true
 }
+
 func jsonError(w http.ResponseWriter, err error) {
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
@@ -53,6 +56,7 @@ func jsonError(w http.ResponseWriter, err error) {
 	}
 	respondWithError(w, 400, "Invalid JSON")
 }
+
 func validEmail(value string) bool {
 	address, err := mail.ParseAddress(value)
 	return err == nil && address.Address == value && len(value) <= 254
@@ -66,22 +70,27 @@ func hasUnsafeControls(value string) bool {
 	}
 	return false
 }
+
 func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	p := database.GetChirpsPageParams{PageLimit: 100}
 	query, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		return p, errors.New("Invalid query encoding")
 	}
-	allowed := map[string]bool{"author_id": true, "sort": true, "limit": true, "offset": true, "page": true}
+	allowed := map[string]bool{"author_id": true, "q": true, "sort": true, "limit": true, "offset": true, "page": true}
 	for name := range query {
 		if !allowed[name] {
 			return p, errors.New("Unknown query parameter: " + name)
 		}
 	}
-	for _, name := range []string{"author_id", "sort", "limit", "offset", "page"} {
+	for _, name := range []string{"author_id", "q", "sort", "limit", "offset", "page"} {
 		if len(query[name]) > 1 {
 			return p, errors.New("Duplicate " + name)
 		}
+	}
+	p.Search = strings.TrimSpace(query.Get("q"))
+	if utf8.RuneCountInString(p.Search) > 140 || hasUnsafeControls(p.Search) {
+		return p, errors.New("Search must contain 140 characters or fewer")
 	}
 	if value := query.Get("author_id"); value != "" {
 		id, err := uuid.Parse(value)

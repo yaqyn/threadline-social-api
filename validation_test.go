@@ -63,6 +63,13 @@ func TestQueryValidation(t *testing.T) {
 	if err != nil || p.PageLimit != 5 || p.PageOffset != 10 {
 		t.Fatalf("page params=%+v err=%v", p, err)
 	}
+	p, err = parseChirpQuery(httptest.NewRequest("GET", "/?q=%20hello%20", nil))
+	if err != nil || p.Search != "hello" {
+		t.Fatalf("search params=%+v err=%v", p, err)
+	}
+	if _, err = parseChirpQuery(httptest.NewRequest("GET", "/?q="+strings.Repeat("x", 141), nil)); err == nil {
+		t.Fatal("accepted oversized search")
+	}
 	for _, alias := range []string{"newest", "oldest"} {
 		p, err := parseChirpQuery(httptest.NewRequest("GET", "/?sort="+alias, nil))
 		if err != nil || p.Descending != (alias == "newest") {
