@@ -106,6 +106,11 @@ func TestAPIIntegration(t *testing.T) {
 	if searchResponse.Code != http.StatusOK || !strings.Contains(searchResponse.Body.String(), "second post") || strings.Contains(searchResponse.Body.String(), "hello ****") {
 		t.Fatalf("chirp search: %d %s", searchResponse.Code, searchResponse.Body.String())
 	}
+	ndjson := httptest.NewRecorder()
+	router.ServeHTTP(ndjson, httptest.NewRequest("GET", "/api/chirps?q=second&format=ndjson", nil))
+	if ndjson.Code != http.StatusOK || ndjson.Header().Get("Content-Type") != "application/x-ndjson; charset=utf-8" || !strings.Contains(ndjson.Body.String(), "second post") || strings.HasPrefix(ndjson.Body.String(), "[") {
+		t.Fatalf("chirp ndjson: %d %v %s", ndjson.Code, ndjson.Header(), ndjson.Body.String())
+	}
 	for _, test := range []struct {
 		query   string
 		wantID  string

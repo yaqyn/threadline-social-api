@@ -77,16 +77,19 @@ func parseChirpQuery(r *http.Request) (database.GetChirpsPageParams, error) {
 	if err != nil {
 		return p, errors.New("Invalid query encoding")
 	}
-	allowed := map[string]bool{"author_id": true, "q": true, "sort": true, "limit": true, "offset": true, "page": true}
+	allowed := map[string]bool{"author_id": true, "q": true, "sort": true, "limit": true, "offset": true, "page": true, "format": true}
 	for name := range query {
 		if !allowed[name] {
 			return p, errors.New("Unknown query parameter: " + name)
 		}
 	}
-	for _, name := range []string{"author_id", "q", "sort", "limit", "offset", "page"} {
+	for _, name := range []string{"author_id", "q", "sort", "limit", "offset", "page", "format"} {
 		if len(query[name]) > 1 {
 			return p, errors.New("Duplicate " + name)
 		}
+	}
+	if format := query.Get("format"); format != "" && format != "json" && format != "ndjson" {
+		return p, errors.New("Format must be json or ndjson")
 	}
 	p.Search = strings.TrimSpace(query.Get("q"))
 	if utf8.RuneCountInString(p.Search) > 140 || hasUnsafeControls(p.Search) {

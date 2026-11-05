@@ -50,7 +50,7 @@ func TestQueryValidation(t *testing.T) {
 			t.Fatalf("accepted malformed query %s", query)
 		}
 	}
-	for _, query := range []string{"?sort=wrong", "?limit=0", "?limit=101", "?offset=-1", "?page=0", "?author_id=wrong"} {
+	for _, query := range []string{"?sort=wrong", "?limit=0", "?limit=101", "?offset=-1", "?page=0", "?author_id=wrong", "?format=csv"} {
 		if _, err := parseChirpQuery(httptest.NewRequest("GET", "/"+query, nil)); err == nil {
 			t.Fatalf("accepted %s", query)
 		}

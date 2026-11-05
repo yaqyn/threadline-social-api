@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log"
 	"mime"
@@ -136,6 +137,15 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(links) > 0 {
 		w.Header().Set("Link", strings.Join(links, ", "))
+	}
+	if r.URL.Query().Get("format") == "ndjson" {
+		w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		encoder := json.NewEncoder(w)
+		for _, chirp := range chirps {
+			_ = encoder.Encode(chirp)
+		}
+		return
 	}
 	respondWithJSON(w, http.StatusOK, chirps)
 }
