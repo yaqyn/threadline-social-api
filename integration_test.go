@@ -111,6 +111,13 @@ func TestAPIIntegration(t *testing.T) {
 	if ndjson.Code != http.StatusOK || ndjson.Header().Get("Content-Type") != "application/x-ndjson; charset=utf-8" || !strings.Contains(ndjson.Body.String(), "second post") || strings.HasPrefix(ndjson.Body.String(), "[") {
 		t.Fatalf("chirp ndjson: %d %v %s", ndjson.Code, ndjson.Header(), ndjson.Body.String())
 	}
+	conditionalRequest := httptest.NewRequest("GET", "/api/chirps?q=second&format=ndjson", nil)
+	conditionalRequest.Header.Set("If-None-Match", ndjson.Header().Get("ETag"))
+	conditional := httptest.NewRecorder()
+	router.ServeHTTP(conditional, conditionalRequest)
+	if ndjson.Header().Get("ETag") == "" || conditional.Code != http.StatusNotModified || conditional.Body.Len() != 0 {
+		t.Fatalf("conditional chirps: %d %v %q", conditional.Code, conditional.Header(), conditional.Body.String())
+	}
 	for _, test := range []struct {
 		query   string
 		wantID  string
