@@ -5,7 +5,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /threadline .
 
-FROM golang:1.27.2-alpine AS migration-build
+FROM golang:1.27.3-alpine AS migration-build
 RUN CGO_ENABLED=0 go install github.com/pressly/goose/v3/cmd/goose@v3.28.0
 
 FROM alpine:3.23 AS migrations
